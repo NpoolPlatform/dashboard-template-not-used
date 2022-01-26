@@ -5,12 +5,8 @@ import { LanguagesState } from './state'
 import { ActionTree } from 'vuex'
 import { AugmentedActionContext, RootState } from '../index'
 import { LanguageMutations } from './mutations'
-import { notificationPush, notificationPop } from '../notifications/helper'
-import { MutationTypes as NotificationMutationTypes } from '../notifications/mutation-types'
-import { Notification } from '../notifications/types'
-import { api } from 'src/boot/axios'
 import { API } from './const'
-import { AxiosResponse } from 'axios'
+import { doAction } from '../action'
 
 interface LanguageActions {
   [ActionTypes.GetLanguages]({
@@ -24,28 +20,15 @@ interface LanguageActions {
 
 const actions: ActionTree<LanguagesState, RootState> = {
   [ActionTypes.GetLanguages] ({ commit }, req: GetLanguagesRequest) {
-    let waitingNotification: Notification
-    if (req.Message.Waiting) {
-      waitingNotification = notificationPush(req.Message.ModuleKey, req.Message.Waiting)
-      commit(NotificationMutationTypes.Push, waitingNotification)
-    }
-    api
-      .post<GetLanguagesRequest, AxiosResponse<GetLanguagesResponse>>(API.GET_LANGUAGES, req)
-      .then((response: AxiosResponse<GetLanguagesResponse>) => {
-        response.data.Infos.forEach((lang) => {
+    doAction<GetLanguagesRequest, GetLanguagesResponse>(
+      commit,
+      API.GET_LANGUAGES,
+      req,
+      req.Message,
+      (resp: GetLanguagesResponse): void => {
+        resp.Infos.forEach((lang) => {
           commit(MutationTypes.SetLanguage, lang)
         })
-        if (waitingNotification) {
-          commit(NotificationMutationTypes.Pop, notificationPop(waitingNotification))
-        }
-      })
-      .catch((err: Error) => {
-        const error = req.Message.Error
-        if (error) {
-          error.Description = err.message
-          const errorNotification = notificationPush(req.Message.ModuleKey, error)
-          commit(NotificationMutationTypes.Push, errorNotification)
-        }
       })
   }
 }
