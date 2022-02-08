@@ -258,7 +258,7 @@ pipeline {
             // servicesample.com should be replaced here
             kubectl create secret tls service-sample-cert --cert=.server-https-ca/servicesample.com/tls.crt --key=.server-https-ca/servicesample.com/tls.key -n kube-system
           fi
-          sh 'rm .server-https-ca -rf'
+          rm .server-https-ca -rf
         '''.stripIndent())
       }
     }
