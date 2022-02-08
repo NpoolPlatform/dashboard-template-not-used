@@ -240,6 +240,27 @@ pipeline {
       }
     }
 
+    stage('Deploy https certificate') {
+      when {
+        expression { DEPLOY_TARGET == 'true' }
+      }
+      steps {
+        sh 'rm .server-https-ca -rf'
+        withCredentials([gitUsernamePassword(credentialsId: 'KK-github-key', gitToolName: 'git-tool')]) {
+          sh 'git clone https://github.com/NpoolPlatform/server-https-ca.git .server-https-ca'
+        }
+        set +e
+        kubectl get secret -n kube-system | grep service-sample-cert
+        rc=$?
+        set -e
+        if [ ! 0 -eq $rc ]; then
+          // servicesample.com should be replaced here
+          kubectl create secret tls service-sample-cert --cert=.server-https-ca/servicesample.com/tls.crt --key=.server-https-ca/servicesample.com/tls.key -n kube-system
+        fi
+        sh 'rm .server-https-ca -rf'
+      }
+    }
+
     stage('Deploy for development') {
       when {
         expression { DEPLOY_TARGET == 'true' }
